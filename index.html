@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Pricelist Topup</title>
-  <meta name="description" content="Pricelist interaktif terhubung Google Sheets (multi/single sheet).">
+  <meta name="description" content="Pricelist interaktif terhubung Google Sheets (multi-game).">
   <style>
     :root{
       --bg:#ffffff; --text:#0b0e12; --muted:#667085; --surface:#f7f8fa; --border:#e5e7eb;
@@ -77,92 +77,77 @@
 
   <script>
     // ========= KONFIGURASI =========
-    // 1) Publish to web dulu di Google Sheets
+    // 1) Publish to web di Google Sheets (File → Share → Publish to web → pilih sheet)
     // 2) Isi SHEET_ID dan SHEET_NAME
-    const SHEET_ID = 'PASTE_SHEET_ID';
+    const SHEET_ID   = 'PASTE_SHEET_ID';
     const SHEET_NAME = 'Sheet3'; // ganti sesuai tab
-    const SHEET_JSON_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(SHEET_NAME)}&tqx=out:json`;
+    const SHEET_JSON_URL =
+      `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(SHEET_NAME)}&tqx=out:json`;
 
-    // WhatsApp
-    const WA_NUMBER = '6285877001999';
+    // WhatsApp tujuan
+    const WA_NUMBER   = '6285877001999';
     const WA_GREETING = 'Halo, saya mau order:';
 
-    // Label tab rapih
-    const prettyLabel = s => String(s||'').trim() || 'Unknown';
-
-    // Buat kode dari kategori + angka pada judul (tanpa tanda minus)
+    // ========= UTIL =========
+    function prettyLabel(raw){
+      const s = String(raw||'').trim();
+      return s.replace(/\s+/g,' ');
+    }
     function makeKode(catKey, title){
+      // contoh: cat "Mobile Legends ID" + "86 Diamonds" --> "mobile-legends-id86"
       const num = (String(title).match(/\d+/) || [''])[0];
-      const base = String(catKey||'game').toLowerCase().replace(/\s+/g,'').replace(/[^a-z0-9]/g,'');
+      const base = (catKey||'game').toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
       return `${base}${num?num:''}`;
     }
-
-    // Format IDR
     const toIDR = v => new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(v);
 
     // Elemen
-    const tabsEl = document.getElementById('tabs');
-    const gridEl = document.getElementById('grid');
-    const searchEl = document.getElementById('search');
-    const countInfoEl = document.getElementById('countInfo');
-    const cardTmpl = document.getElementById('cardTmpl');
-    const errBox = document.getElementById('error');
+    const tabsEl     = document.getElementById('tabs');
+    const gridEl     = document.getElementById('grid');
+    const searchEl   = document.getElementById('search');
+    const countInfoEl= document.getElementById('countInfo');
+    const cardTmpl   = document.getElementById('cardTmpl');
+    const errBox     = document.getElementById('error');
 
     // State
-    let DATA = [];       // {catKey, catLabel, title, price, kode}
-    let CATS = [];       // [{key,label}]
+    let DATA = [];  // {catKey, catLabel, title, price, kode}
+    let CATS = [];  // [{key,label}]
     let activeCat = '';
     let query = '';
 
-    // === Parser Google Visualization JSON ===
-    function parseGViz(jsonText){
-      const payload = jsonText.replace(/^[^{]+/, '').replace(/;?$/, '');
-      const obj = JSON.parse(payload);
+    // ========= PARSER GViz STABIL =========
+    function parseGVizPairs(jsonText){
+      // Ambil objek JSON di dalam setResponse(...{...}...)
+      const m = jsonText.match(/\{.*\}/s);
+      if(!m) throw new Error('Response GViz tidak valid (tidak ditemukan objek JSON).');
+      const obj = JSON.parse(m[0]);
+
       const table = obj.table || {};
-      const rows = table.rows || [];
-      const cols = table.cols || [];
+      const rows  = table.rows || [];
+      const cols  = table.cols || [];
 
-      // Mode 1: Single category 2 kolom (A=judul, B=harga)
-      if (cols.length === 2) {
-        const catKey = SHEET_NAME;
-        const catLabel = prettyLabel(SHEET_NAME);
-        const out = [];
-        for (const r of rows) {
-          const c = r.c || [];
-          const title = c[0]?.v!=null ? String(c[0].v).trim() : '';
-          const priceRaw = c[1]?.v;
-          const price = priceRaw!=null && priceRaw!=='' ? Number(priceRaw) : NaN;
-          if (title && !Number.isNaN(price)) {
-            out.push({ catKey, catLabel, title, price, kode: makeKode(catKey, title) });
-          }
-        }
-        return out;
-      }
-
-      // Mode 2: Multi kategori, pasangan kolom [judul,harga]
+      // Asumsi pasangan kolom: [A,B] [C,D] [E,F] ... = [Nama, Harga]
       const pairs = [];
-      for (let i=0;i<cols.length;i+=2){
+      for(let i=0;i<cols.length;i+=2){
         const label = cols[i]?.label || '';
-        const priceColExists = !!cols[i+1];
-        if(!label || !priceColExists) continue;
-        pairs.push({iTitle:i, iPrice:i+1, label:label});
+        if(!label || !cols[i+1]) continue;
+        pairs.push({ iTitle:i, iPrice:i+1, label });
       }
 
       const out = [];
-      for (const r of rows) {
+      for(const r of rows){
         const c = r.c || [];
-        for (const p of pairs) {
-          const title = c[p.iTitle]?.v!=null ? String(c[p.iTitle].v).trim() : '';
+        for(const p of pairs){
+          const title = c[p.iTitle]?.v != null ? String(c[p.iTitle].v).trim() : '';
           const priceRaw = c[p.iPrice]?.v;
           const price = priceRaw!=null && priceRaw!=='' ? Number(priceRaw) : NaN;
-          if (title && !Number.isNaN(price)) {
-            const catKey = p.label;
+          if(title && !Number.isNaN(price)){
             out.push({
-              catKey,
+              catKey: p.label,
               catLabel: prettyLabel(p.label),
               title,
               price,
-              kode: makeKode(catKey, title)
+              kode: makeKode(p.label, title)
             });
           }
         }
@@ -170,12 +155,12 @@
       return out;
     }
 
+    // ========= UI =========
     function buildTabs(){
       const map = new Map();
-      for(const it of DATA){
-        if(!map.has(it.catKey)) map.set(it.catKey, it.catLabel);
-      }
+      for(const it of DATA){ if(!map.has(it.catKey)) map.set(it.catKey, it.catLabel); }
       CATS = [...map].map(([key,label]) => ({key,label}));
+
       tabsEl.innerHTML = '';
       CATS.forEach((c, idx)=>{
         const b = document.createElement('button');
@@ -199,36 +184,16 @@
       activeCat = CATS[0]?.key || '';
     }
 
-    function sortItems(items){
-      // Urut angka naik jika ada angka di judul; selain itu urut alfabetis
-      const num = s => {
-        const m = String(s).match(/\d+/);
-        return m ? parseInt(m[0],10) : NaN;
-      };
-      return items.sort((a,b)=>{
-        const na = num(a.title), nb = num(b.title);
-        if(!Number.isNaN(na) && !Number.isNaN(nb)) return na - nb;
-        if(!Number.isNaN(na)) return -1;
-        if(!Number.isNaN(nb)) return 1;
-        return a.title.localeCompare(b.title, 'id');
-      });
-    }
-
     function renderGrid(){
-      let items = DATA.filter(x => x.catKey===activeCat);
-
-      // filter pencarian
-      if (query) {
-        const q = query.toLowerCase();
-        items = items.filter(x =>
-          x.title.toLowerCase().includes(q) ||
-          x.kode.toLowerCase().includes(q) ||
-          String(x.price).includes(q)
-        );
-      }
-
-      // urutkan
-      items = sortItems(items);
+      const items = DATA
+        .filter(x => x.catKey===activeCat)
+        .filter(x => {
+          if(!query) return true;
+          const q = query.toLowerCase();
+          return x.title.toLowerCase().includes(q) ||
+                 x.kode.toLowerCase().includes(q) ||
+                 String(x.price).includes(q);
+        });
 
       gridEl.innerHTML = '';
       if(items.length===0){
@@ -243,7 +208,7 @@
       for(const it of items){
         const $ = cardTmpl.content.cloneNode(true);
         $.querySelector('.title').textContent = it.title;
-        $.querySelector('.desc').textContent  = ''; // bisa diisi info singkat jika perlu
+        $.querySelector('.desc').textContent  = '';
         $.querySelector('.kode').textContent  = `Kode: ${it.kode}`;
         $.querySelector('.price').textContent = toIDR(it.price);
 
@@ -257,19 +222,21 @@
       countInfoEl.textContent = `${items.length} item`;
     }
 
-    // Search debounce
+    // Search (debounce)
     let to=null;
-    document.getElementById('search').addEventListener('input', e=>{
+    searchEl.addEventListener('input', e=>{
       clearTimeout(to);
       to=setTimeout(()=>{ query = e.target.value.trim(); renderGrid(); }, 120);
     });
 
+    // ========= LOAD =========
     async function load(){
       try{
         const res = await fetch(SHEET_JSON_URL, {cache:'no-store'});
         const txt = await res.text();
-        DATA = parseGViz(txt);
-        if(DATA.length===0) throw new Error('Data kosong atau format kolom tidak sesuai.');
+        DATA = parseGVizPairs(txt);
+        if(DATA.length===0) throw new Error('Data kosong atau format kolom tidak sesuai (A/B, C/D, dst).');
+
         buildTabs();
         renderGrid();
       }catch(err){
