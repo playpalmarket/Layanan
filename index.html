@@ -2,88 +2,205 @@
 <html lang="id">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Pricelist Topup</title>
   <meta name="description" content="Pricelist interaktif terhubung Google Sheets (multi-game).">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+
   <style>
-    /* [DIUBAH] Palet warna & variabel baru yang lebih ringkas */
+    /* ================= THEME ================= */
     :root{
-      --bg: #ffffff; --text: #1f2937; --muted: #6b7280; 
-      --surface: #f3f3f3; --border: #e5e7eb;
-      --primary: #5C80BC; --primary-hover: #4a6b9a;
-      --maxw: 1100px; --radius: 8px;
+      --bg: #0f1422;            /* base dark */
+      --panel:#151c2d;          /* elevated surface */
+      --text:#eef2f7;           /* primary text */
+      --muted:#a6b0c0;          /* secondary text */
+      --border:#243655;         /* soft border */
+      --primary:#6DA3FF;        /* accent blue */
+      --primary-2:#8B7CFF;      /* accent violet */
+      --radius:16px;
+      --shadow-1:0 1px 2px rgba(0,0,0,.35);
+      --shadow-2:0 10px 30px rgba(0,0,0,.35);
+      --pill-bg:#f9fafb;        /* OpenRouter-like pill background (always light) */
+      --pill-text:#111827;
+      --maxw:1120px;
     }
-    @media (prefers-color-scheme: dark){
-      :root{ 
-        --bg: #111827; --text: #f3f4f6; --muted: #9ca3af; 
-        --surface: #1f2937; --border: #374151;
+    @media (prefers-color-scheme: light){
+      :root{
+        --bg:#f6f8fc; --panel:#ffffff; --text:#0b1220; --muted:#556071; --border:#e6e8ef;
+        --shadow-1:0 1px 2px rgba(9,30,66,.08); --shadow-2:0 16px 48px rgba(9,30,66,.12);
+        --pill-bg:#ffffff; --pill-text:#0b1220;
       }
     }
-
     *{box-sizing:border-box}
     html,body{height:100%}
     body{
       margin:0; background:var(--bg); color:var(--text);
-      font-family: 'Inter', ui-sans-serif, -apple-system, system-ui, "Segoe UI", sans-serif;
-      font-size: 15px; line-height: 1.5;
+      font-family: Inter, ui-sans-serif, -apple-system, system-ui, "Segoe UI", sans-serif;
+      font-size:15.5px; line-height:1.6;
       -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
     }
-    .wrap{max-width:var(--maxw); margin:0 auto; padding: 32px 16px}
-    header h1{margin:0 0 4px; font-size:clamp(22px, 3vw, 28px); font-weight:700;}
-    header p{margin:0; color:var(--muted); font-size:15px;}
+    a{color:inherit}
 
-    .tabs{display:flex; gap:10px; margin:20px 0 16px; flex-wrap:wrap; padding-bottom: 4px; overflow-x: auto;}
-    .tab{
-      padding:6px 14px; border:1px solid var(--border); background:var(--bg); color:var(--muted);
-      border-radius:var(--radius); cursor:pointer; user-select:none;
-      font-weight:600; font-size:14px; transition: all 0.2s ease; white-space: nowrap;
+    /* ================ TOPBAR (OpenRouter-like) ================ */
+    .topbar{
+      position:sticky; top:0; z-index:50;
+      backdrop-filter:saturate(160%) blur(8px);
+      background:color-mix(in oklab, var(--bg) 85%, transparent);
+      border-bottom:1px solid var(--border);
     }
-    .tab:hover{ background:var(--surface); color:var(--text); }
-    .tab[aria-selected="true"]{
-      background:var(--primary); color:#fff; border-color:var(--primary);
+    .topbar .inner{
+      max-width:var(--maxw); margin:0 auto; padding:10px 16px; display:flex; align-items:center; gap:12px;
+    }
+    .brand{ display:flex; align-items:center; gap:10px; text-decoration:none }
+    .brand .logo{
+      width:28px; height:28px; border-radius:7px;
+      background: radial-gradient(100% 100% at 0% 0%, var(--primary), var(--primary-2));
+      box-shadow: var(--shadow-1);
+    }
+    .brand span{ font:700 20px/1 Poppins, Inter, sans-serif; letter-spacing:.2px; }
+
+    .grow{ flex:1 }
+    .actions{ display:flex; align-items:center; gap:8px }
+
+    .icon-btn{
+      appearance:none; border:1px solid var(--border); background:var(--panel); color:var(--text);
+      width:40px; height:40px; border-radius:999px; display:grid; place-items:center;
+      box-shadow:var(--shadow-1); cursor:pointer; transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    }
+    .icon-btn:hover{ transform:translateY(-1px); box-shadow:var(--shadow-2); border-color:color-mix(in oklab, var(--primary) 30%, var(--border)); }
+    .hamburger, .hamburger::before, .hamburger::after{
+      content:""; display:block; width:18px; height:2px; border-radius:2px; background:currentColor; position:relative;
+    }
+    .hamburger::before{ position:absolute; top:-6px; }
+    .hamburger::after{ position:absolute; top:6px; }
+
+    .pill{
+      padding:9px 14px; border-radius:999px; font-weight:600; font-size:14.5px;
+      border:1px solid color-mix(in oklab, #000 10%, #fff 90%);
+      background:var(--pill-bg); color:var(--pill-text);
+      box-shadow:0 1px 0 rgba(255,255,255,.6), 0 6px 18px rgba(0,0,0,.12);
+      cursor:pointer; transition:transform .15s ease, box-shadow .15s ease;
+    }
+    .pill:hover{ transform:translateY(-1px); box-shadow: 0 12px 28px rgba(0,0,0,.18); }
+    .avatar{
+      width:40px; height:40px; border-radius:999px; display:grid; place-items:center; font-weight:700;
+      background:linear-gradient(180deg, #ffffff, #f1f5f9); color:#0b1220; border:1px solid #e5e7eb; box-shadow:0 1px 0 #fff, 0 8px 22px rgba(0,0,0,.12);
     }
 
-    .tools{display:flex; flex-wrap:wrap; align-items:center; margin-bottom:16px}
-    .search-wrap{position:relative; flex:1 1 250px;}
+    /* ================ LAYOUT ================ */
+    .wrap{ max-width:var(--maxw); margin:0 auto; padding: 20px 16px 40px; }
+    header h1{ margin:6px 0 4px; font:700 clamp(22px,3.2vw,30px)/1.15 Poppins, Inter, sans-serif; letter-spacing:-.2px; }
+    header p{ margin:0; color:var(--muted); font-size:14.5px }
+
+    .tools{ display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin:16px 0 18px; }
+    .search-wrap{ position:relative; flex:1 1 260px; }
     .search-wrap svg{ position:absolute; left:12px; top:50%; transform:translateY(-50%); width:18px; height:18px; color:var(--muted); }
-    .tools input[type="search"]{
-      width:100%; padding:8px 12px 8px 38px; border:1px solid var(--border);
-      background:var(--bg); color:var(--text); border-radius:var(--radius); font-size:14px;
-      transition: border-color 0.2s ease;
+    input[type="search"]{
+      width:100%; padding:12px 12px 12px 40px;
+      background:var(--panel); color:var(--text); border:1px solid var(--border); border-radius:12px; font-size:14.5px;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
     }
-    .tools input[type="search"]:focus{ outline:none; border-color:var(--primary); }
-    .tools .info{color:var(--muted); font-size:13px; font-weight:500; padding-left: 12px;}
+    input[type="search"]:focus-visible{ outline:2px solid color-mix(in oklab, var(--primary) 75%, transparent); outline-offset:2px; }
 
-    /* [DIUBAH] Grid dan Kartu dibuat jauh lebih padat dan ringkas */
-    .grid{
-      display:grid; gap:12px; 
-      grid-template-columns:repeat(auto-fill, minmax(160px, 1fr));
+    .info{ color:var(--muted); font-size:13.5px; font-weight:600; }
+
+    /* ================ TABS ala pill ================ */
+    .tabs{
+      display:flex; gap:8px; margin:10px 0 6px; padding:8px 0 10px;
+      overflow:auto; border-bottom:1px solid var(--border);
+      position:sticky; top:58px; z-index:40; background:linear-gradient(180deg, color-mix(in oklab, var(--bg) 92%, transparent), transparent);
     }
+    .tab{
+      padding:10px 14px; background:var(--panel); color:var(--muted); border:1px solid var(--border);
+      border-radius:999px; font-weight:700; font-size:13.8px; white-space:nowrap; cursor:pointer;
+      transition:transform .15s ease, border-color .15s ease, color .15s ease, background .15s ease, box-shadow .15s ease;
+      box-shadow:var(--shadow-1);
+    }
+    .tab:hover{ transform:translateY(-1px); color:var(--text); border-color:color-mix(in oklab, var(--primary) 40%, var(--border)); }
+    .tab[aria-selected="true"]{
+      background:linear-gradient(135deg, color-mix(in oklab, var(--primary) 80%, var(--panel)), color-mix(in oklab, var(--primary-2) 70%, var(--panel)));
+      color:#fff; border-color:transparent; box-shadow:var(--shadow-2);
+    }
+
+    /* ================ GRID & CARD ================ */
+    .grid{ display:grid; gap:14px; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); }
     .card-link{
-      display:block; text-decoration: none; color: inherit;
-      border:1px solid var(--border); background:var(--surface); 
-      border-radius:var(--radius); padding:14px;
-      transition: border-color 0.2s ease;
+      display:block; text-decoration:none; color:inherit;
+      background:linear-gradient(180deg, color-mix(in oklab, var(--panel) 86%, #101828 14%), var(--panel));
+      border:1px solid var(--border); border-radius:16px; padding:16px;
+      transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+      box-shadow:var(--shadow-1);
     }
-    .card-link:hover{ border-color: var(--primary); }
+    .card-link:hover{ transform:translateY(-2px); box-shadow:var(--shadow-2); border-color:color-mix(in oklab, var(--primary) 45%, var(--border)); }
     .card{ display:flex; flex-direction:column; text-align:center; }
-    .card h3{ margin:0; font-size:14px; font-weight:600; color: var(--text); line-height: 1.4; }
-    .card .price{
-      margin-top: 8px; font-weight:700; font-size:16px; color:var(--primary);
+    .card h3{ margin:0; font-size:14.5px; font-weight:700; line-height:1.35; letter-spacing:.1px; }
+    .price{ margin-top:10px; font-weight:800; font-size:18px; color:var(--primary); }
+
+    .empty,.err{
+      grid-column:1 / -1; text-align:center; padding:44px 20px; border-radius:16px;
+      border:1px dashed var(--border); color:var(--muted); background:linear-gradient(180deg, var(--panel), color-mix(in oklab, var(--panel) 80%, transparent));
     }
-    
-    .empty, .err{
-      border:1px dashed var(--border); border-radius:var(--radius); padding:40px; text-align:center; 
-      color:var(--muted); font-size:14px; grid-column: 1 / -1;
+    .err{ border:1px solid #ef4444; background:linear-gradient(180deg, #2a0c0c, #1b0d0f); color:#ffb4b4; display:none; }
+
+    /* ================ DRAWER & MODAL ================ */
+    .overlay{ position:fixed; inset:0; background:rgba(0,0,0,.4); opacity:0; pointer-events:none; transition:opacity .2s ease; z-index:60; }
+    .overlay.show{ opacity:1; pointer-events:auto; }
+
+    .drawer{
+      position:fixed; right:0; top:0; height:100dvh; width:min(86vw, 340px);
+      background:var(--panel); color:var(--text); border-left:1px solid var(--border);
+      transform:translateX(100%); transition:transform .25s ease; z-index:70; padding:18px;
     }
-    .err{ border:1px solid #ef4444; background:#fef2f2; color:#b91c1c; display:none }
-    @media (prefers-color-scheme: dark){ .err{background:#2a0c0c; color:#fca5a5; border-color:#7f1d1d} }
+    .drawer.show{ transform:translateX(0); }
+    .drawer h3{ margin:4px 0 14px; font:700 16px/1.1 Poppins, Inter, sans-serif; }
+    .drawer a{ display:block; padding:10px 8px; border-radius:10px; border:1px solid var(--border); margin-bottom:8px; text-decoration:none; color:inherit; }
+
+    .modal{
+      position:fixed; inset:0; display:grid; place-items:center; z-index:80; pointer-events:none;
+    }
+    .modal .card{
+      width:min(540px, 92vw); padding:18px; background:var(--panel); border:1px solid var(--border); border-radius:18px;
+      box-shadow:var(--shadow-2); transform:translateY(12px); opacity:0; transition:transform .2s ease, opacity .2s ease;
+    }
+    .modal.show{ pointer-events:auto; }
+    .modal.show .card{ transform:translateY(0); opacity:1; }
+    .modal h2{ margin:0 0 8px; font:700 20px/1.2 Poppins, Inter, sans-serif; }
+    .modal p{ margin:0 0 14px; color:var(--muted) }
+    .row{ display:flex; gap:10px; align-items:center; }
+    .modal input{
+      flex:1; padding:10px 12px; border-radius:12px; background:#0c1222; color:#fff; border:1px solid var(--border);
+    }
+    .btn-primary{
+      appearance:none; padding:10px 14px; border-radius:12px; border:1px solid transparent; cursor:pointer; font-weight:700;
+      color:#fff; background:linear-gradient(135deg, var(--primary), var(--primary-2));
+      box-shadow:var(--shadow-2);
+    }
+    .btn-ghost{ appearance:none; padding:10px 12px; border-radius:12px; background:transparent; border:1px solid var(--border); color:var(--text); cursor:pointer }
+
+    @media (prefers-reduced-motion: reduce){
+      .tab,.card-link,.pill,.icon-btn{ transition:none }
+    }
   </style>
 </head>
 <body>
+  <!-- ======== TOPBAR ======== -->
+  <div class="topbar">
+    <div class="inner">
+      <a class="brand" href="#">
+        <span class="logo" aria-hidden="true"></span><span>PlayPal</span>
+      </a>
+      <div class="grow"></div>
+      <div class="actions">
+        <!-- contoh ikon search (opsional) -->
+        <button class="icon-btn" id="searchToggle" aria-label="Cari"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd"/></svg></button>
+        <button id="signinBtn" class="pill">Sign in</button>
+        <button class="icon-btn" id="menuBtn" aria-label="Menu"><span class="hamburger"></span></button>
+      </div>
+    </div>
+  </div>
+
   <main class="wrap">
     <header>
       <h1>Pricelist Topup</h1>
@@ -93,7 +210,7 @@
     <nav id="tabs" class="tabs" role="tablist" aria-label="Game"></nav>
 
     <div class="tools">
-      <div class="search-wrap">
+      <div class="search-wrap" id="searchWrap">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd" /></svg>
         <input id="search" type="search" placeholder="Cari item..." aria-label="Cari">
       </div>
@@ -113,15 +230,40 @@
     </template>
   </main>
 
+  <!-- ======== DRAWER ======== -->
+  <div id="overlay" class="overlay" aria-hidden="true"></div>
+  <aside id="drawer" class="drawer" aria-hidden="true" aria-label="Menu">
+    <h3>Menu</h3>
+    <a href="#">Beranda</a>
+    <a href="#">Semua Game</a>
+    <a href="#">Lacak Pesanan</a>
+    <a href="#">Bantuan</a>
+  </aside>
+
+  <!-- ======== MODAL SIGN-IN ======== -->
+  <div id="signinModal" class="modal" aria-hidden="true">
+    <div class="card">
+      <h2>Masuk</h2>
+      <p>Demo sederhana. Masukkan email untuk menyimpan sesi lokal. Nanti bisa diganti OAuth.</p>
+      <div class="row">
+        <input id="emailInput" type="email" placeholder="you@example.com" autocomplete="email">
+        <button id="doSignIn" class="btn-primary">Lanjut</button>
+        <button id="closeSignIn" class="btn-ghost">Tutup</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // ========= KONFIG =========
-    const SHEET_ID   = '1B0XPR4uSvRzy9LfzWDjNjwAyMZVtJs6_Kk_r2fh7dTw';
-    const SHEET_NAME = 'Sheet3';
+    const SHEET_ID   = '1B0XPR4uSvRzy9LfzWDjNjwAyMZVtJs6_Kk_r2fh7dTw'; // GANTI jika perlu
+    const SHEET_NAME = 'Sheet3'; // GANTI jika perlu
     const SHEET_JSON_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(SHEET_NAME)}&tqx=out:json`;
     const WA_NUMBER   = '6285877001999';
     const WA_GREETING = 'Halo, saya mau order:';
 
-    // ========= UTIL (tidak ada perubahan) =========
+    // ========= UTIL =========
+    const $ = s => document.querySelector(s);
+    const $$ = s => document.querySelectorAll(s);
     function prettyLabel(raw){ return String(raw||'').trim().replace(/\s+/g,' '); }
     function makeKode(catKey, title){
       const num = (String(title).match(/\d+/) || [''])[0];
@@ -130,10 +272,9 @@
     }
     const toIDR = v => new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(v);
 
-    const tabsEl = document.getElementById('tabs'), gridEl = document.getElementById('grid'),
-          searchEl = document.getElementById('search'), countInfoEl = document.getElementById('countInfo'),
-          cardTmpl = document.getElementById('cardTmpl'), errBox = document.getElementById('error');
-    
+    const tabsEl = $('#tabs'), gridEl = $('#grid'), searchEl = $('#search'), countInfoEl = $('#countInfo'),
+          cardTmpl = $('#cardTmpl'), errBox = $('#error');
+
     let DATA = [], CATS = [], activeCat = '', query = '';
 
     function parseGVizPairs(jsonText){
@@ -175,7 +316,8 @@
         b.setAttribute('aria-selected', idx === 0 ? 'true' : 'false');
         b.dataset.cat = c.key; b.textContent = c.label;
         b.onclick = () => {
-          tabsEl.querySelector('[aria-selected="true"]').setAttribute('aria-selected', 'false');
+          const prev = tabsEl.querySelector('[aria-selected="true"]');
+          if(prev) prev.setAttribute('aria-selected', 'false');
           b.setAttribute('aria-selected', 'true');
           activeCat = c.key;
           renderGrid();
@@ -186,24 +328,21 @@
     }
 
     function renderGrid(){
-      const items = DATA.filter(x => x.catKey === activeCat && 
+      const items = DATA.filter(x => x.catKey === activeCat &&
         (query === '' || x.title.toLowerCase().includes(query) || String(x.price).includes(query))
       );
-
       gridEl.innerHTML = '';
       if(items.length === 0){
         gridEl.innerHTML = `<div class="empty">Tidak ada hasil ditemukan.</div>`;
         countInfoEl.textContent = '';
         return;
       }
-      
       const fragment = document.createDocumentFragment();
       for(const it of items){
         const clone = cardTmpl.content.cloneNode(true);
         const link = clone.querySelector('.card-link');
         link.querySelector('.title').textContent = it.title;
         link.querySelector('.price').textContent = toIDR(it.price);
-        
         const text = `${WA_GREETING}\n- Game: ${it.catLabel}\n- Item: ${it.title}\n- Harga: ${toIDR(it.price)}`;
         link.href = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(text)}`;
         fragment.appendChild(clone);
@@ -218,7 +357,7 @@
       debounceTimer = setTimeout(() => {
         query = e.target.value.trim().toLowerCase();
         renderGrid();
-      }, 150);
+      }, 140);
     });
 
     async function load(){
@@ -235,6 +374,68 @@
       }
     }
     load();
+
+    // ======== OpenRouter-like Sign-in + Drawer ========
+    const drawer = document.getElementById('drawer');
+    const overlay = document.getElementById('overlay');
+    const menuBtn = document.getElementById('menuBtn');
+    const signinBtn = document.getElementById('signinBtn');
+    const modal = document.getElementById('signinModal');
+    const emailInput = document.getElementById('emailInput');
+
+    function openDrawer(){ drawer.classList.add('show'); overlay.classList.add('show'); drawer.setAttribute('aria-hidden','false'); }
+    function closeDrawer(){ drawer.classList.remove('show'); overlay.classList.remove('show'); drawer.setAttribute('aria-hidden','true'); }
+
+    menuBtn.addEventListener('click', openDrawer);
+    overlay.addEventListener('click', ()=>{ closeDrawer(); closeModal(); });
+
+    function openModal(){ modal.classList.add('show'); overlay.classList.add('show'); modal.setAttribute('aria-hidden','false'); }
+    function closeModal(){ modal.classList.remove('show'); overlay.classList.remove('show'); modal.setAttribute('aria-hidden','true'); }
+    document.getElementById('closeSignIn').addEventListener('click', closeModal);
+
+    // Toggle search focus (ikon kaca pembesar)
+    document.getElementById('searchToggle').addEventListener('click', ()=>{
+      document.getElementById('search').focus();
+      document.getElementById('searchWrap').scrollIntoView({behavior:'smooth', block:'center'});
+    });
+
+    // Simple local "auth"
+    function setLoggedIn(email){
+      localStorage.setItem('pp_user', JSON.stringify({email}));
+      // ganti tombol Sign in -> avatar dengan inisial
+      const initials = (email.split('@')[0].slice(0,2) || 'PP').toUpperCase();
+      const avatar = document.createElement('button');
+      avatar.className = 'avatar';
+      avatar.title = email;
+      avatar.textContent = initials;
+      signinBtn.replaceWith(avatar);
+      avatar.addEventListener('click', ()=>{
+        if(confirm(`Keluar dari ${email}?`)){
+          localStorage.removeItem('pp_user'); location.reload();
+        }
+      });
+    }
+
+    function restoreSession(){
+      const raw = localStorage.getItem('pp_user');
+      if(!raw) return;
+      try{
+        const {email} = JSON.parse(raw);
+        if(email) setLoggedIn(email);
+      }catch{}
+    }
+    restoreSession();
+
+    signinBtn.addEventListener('click', openModal);
+    document.getElementById('doSignIn').addEventListener('click', ()=>{
+      const email = (emailInput.value || '').trim();
+      if(!/^\S+@\S+\.\S+$/.test(email)) { emailInput.focus(); emailInput.select(); return; }
+      setLoggedIn(email);
+      closeModal();
+    });
+
+    // Escape to close
+    window.addEventListener('keydown', (e)=>{ if(e.key==='Escape'){ closeDrawer(); closeModal(); }});
   </script>
 </body>
 </html>
