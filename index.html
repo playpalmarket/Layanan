@@ -5,44 +5,104 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Pricelist Topup</title>
   <meta name="description" content="Pricelist interaktif terhubung Google Sheets (multi-game).">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
+    /* [2] Palet Warna & Desain yang Disempurnakan */
     :root{
-      --bg:#ffffff; --text:#0b0e12; --muted:#667085; --surface:#f7f8fa; --border:#e5e7eb;
-      --primary:#0f172a; --maxw:1100px;
+      --bg: #ffffff; --text: #111827; --muted: #6b7280; --surface: #f9fafb; --border: #e5e7eb;
+      --primary: #4f46e5; --primary-light: #e0e7ff; --maxw: 1100px;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --radius-md: 8px; --radius-lg: 12px;
     }
     @media (prefers-color-scheme: dark){
-      :root{ --bg:#0b0e12; --text:#e5e7eb; --muted:#9aa4b2; --surface:#0f1318; --border:#1f2730; --primary:#e5e7eb; }
+      :root{ 
+        --bg: #030712; --text: #f9fafb; --muted: #9ca3af; --surface: #111827; --border: #374151;
+        --primary: #6366f1; --primary-light: #312e81;
+      }
     }
-    *{box-sizing:border-box} html,body{height:100%}
-    body{margin:0;background:var(--bg);color:var(--text);
-      font:16px/1.55 ui-sans-serif,-apple-system,system-ui,"Segoe UI",Roboto,"Helvetica Neue",Arial}
-    .wrap{max-width:var(--maxw);margin:0 auto;padding:24px}
-    header h1{margin:0 0 4px;font-size:clamp(20px,2.4vw,28px)}
-    header p{margin:0;color:var(--muted);font-size:14px}
 
-    .tabs{display:flex;gap:10px;margin:18px 0 12px;flex-wrap:wrap}
-    .tab{padding:10px 14px;border:1px solid var(--border);background:var(--surface);
-      border-radius:10px;cursor:pointer;user-select:none;font-weight:600;font-size:14px}
-    .tab[aria-selected="true"]{outline:2px solid var(--primary)}
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    
+    /* [3] Tipografi Menggunakan Font "Inter" */
+    body{
+      margin:0; background:var(--bg); color:var(--text);
+      font-family: 'Inter', ui-sans-serif, -apple-system, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      font-size: 16px; line-height: 1.6;
+      -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+    }
+    .wrap{max-width:var(--maxw); margin:0 auto; padding: 48px 24px}
+    header h1{margin:0 0 8px; font-size:clamp(24px, 3vw, 32px); font-weight:800; letter-spacing:-0.02em;}
+    header p{margin:0; color:var(--muted); font-size:16px;}
 
-    .tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
-    .tools input[type="search"]{flex:1 1 260px;padding:10px 12px;border:1px solid var(--border);
-      background:var(--surface);color:var(--text);border-radius:10px;font-size:14px}
-    .tools .info{color:var(--muted);font-size:13px}
+    /* [4] Desain Tab yang Lebih Halus */
+    .tabs{display:flex; gap:12px; margin:24px 0 16px; flex-wrap:wrap}
+    .tab{
+      padding:8px 16px; border:1px solid var(--border); background:var(--bg); color:var(--muted);
+      border-radius:var(--radius-md); cursor:pointer; user-select:none;
+      font-weight:600; font-size:14px; transition: all 0.2s ease;
+    }
+    .tab:hover{ background:var(--surface); color:var(--text); }
+    .tab[aria-selected="true"]{
+      background:var(--primary-light); color:var(--primary); border-color:var(--primary);
+      font-weight:700;
+    }
+    @media (prefers-color-scheme: dark){
+      .tab[aria-selected="true"]{ border-color: var(--primary); }
+    }
 
-    .grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
-    .card{border:1px solid var(--border);background:var(--surface);border-radius:12px;padding:14px;
-      display:flex;flex-direction:column;gap:8px}
-    .card h3{margin:0;font-size:16px}
-    .card p{margin:0;color:var(--muted);font-size:13px}
-    .price{font-weight:800;font-size:18px;margin-top:2px}
-    .meta{display:flex;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
-    .btn{margin-top:auto;display:inline-block;text-align:center;text-decoration:none;
-      padding:10px 12px;border-radius:10px;background:var(--primary);color:#fff;font-weight:700;font-size:14px}
-    @media (prefers-color-scheme: dark){ .btn{color:#0b0e12;background:#e5e7eb} }
-    .empty{border:1px dashed var(--border);border-radius:12px;padding:20px;text-align:center;color:var(--muted);font-size:14px}
-    .err{border:1px solid #b91c1c;background:#fef2f2;color:#7f1d1d;border-radius:12px;padding:14px;display:none}
-    @media (prefers-color-scheme: dark){ .err{background:#1a0b0b;color:#fca5a5;border-color:#7f1d1d} }
+    /* [5] Search Bar dengan Ikon */
+    .tools{display:flex; gap:16px; flex-wrap:wrap; align-items:center; margin-bottom:20px}
+    .search-wrap{position:relative; flex:1 1 280px;}
+    .search-wrap svg{
+      position:absolute; left:14px; top:50%; transform:translateY(-50%);
+      width:20px; height:20px; color:var(--muted); pointer-events:none;
+    }
+    .tools input[type="search"]{
+      width:100%; padding:10px 14px 10px 42px; border:1px solid var(--border);
+      background:var(--bg); color:var(--text); border-radius:var(--radius-md); font-size:14px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .tools input[type="search"]:focus{
+      outline:none; border-color:var(--primary); box-shadow: 0 0 0 3px var(--primary-light);
+    }
+    .tools .info{color:var(--muted); font-size:13px; font-weight:500;}
+
+    /* [6] Desain Kartu (Card) yang Lebih Premium */
+    .grid{display:grid; gap:16px; grid-template-columns:repeat(auto-fill, minmax(240px,1fr))}
+    .card{
+      border:1px solid var(--border); background:var(--surface); border-radius:var(--radius-lg); padding:20px;
+      display:flex; flex-direction:column; gap:4px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .card:hover{ transform: translateY(-4px); box-shadow: var(--shadow-md); }
+    .card h3{margin:0; font-size:16px; font-weight:600;}
+    .card p{margin:0; color:var(--muted); font-size:13px;}
+    .price{font-weight:800; font-size:20px; margin-top:12px; color: var(--text);}
+    .kode{font-size:12px; color:var(--muted); background-color: var(--bg); border: 1px solid var(--border);
+      padding: 2px 8px; border-radius: 99px; display: inline-block; margin-top: 12px; }
+    
+    .btn{
+      margin-top:auto; display:inline-block; text-align:center; text-decoration:none;
+      padding:10px 12px; border-radius:var(--radius-md); background:var(--primary); color:#fff; 
+      font-weight:600; font-size:14px; transition: background-color 0.2s ease;
+      margin-top: 16px;
+    }
+    .btn:hover{ background-color: #4338ca; }
+    @media (prefers-color-scheme: dark){ 
+      .btn{color:#fff; background:var(--primary); }
+      .btn:hover{ background-color: #4f46e5; }
+    }
+    
+    .empty, .err{
+      border:1px dashed var(--border); border-radius:var(--radius-lg); padding:40px; text-align:center; 
+      color:var(--muted); font-size:14px; grid-column: 1 / -1;
+    }
+    .err{ border:1px solid #ef4444; background:#fef2f2; color:#b91c1c; display:none }
+    @media (prefers-color-scheme: dark){ .err{background:#2a0c0c; color:#fca5a5; border-color:#7f1d1d} }
   </style>
 </head>
 <body>
@@ -55,7 +115,10 @@
     <nav id="tabs" class="tabs" role="tablist" aria-label="Game"></nav>
 
     <div class="tools">
-      <input id="search" type="search" placeholder="Cari paket atau kode…" aria-label="Cari">
+      <div class="search-wrap">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd" /></svg>
+        <input id="search" type="search" placeholder="Cari paket atau kode…" aria-label="Cari">
+      </div>
       <span id="countInfo" class="info"></span>
     </div>
 
@@ -66,11 +129,11 @@
       <article class="card">
         <h3 class="title"></h3>
         <p class="desc"></p>
+        <div class="price"></div>
         <div class="meta">
           <span class="kode"></span>
         </div>
-        <div class="price"></div>
-        <a class="btn" target="_blank" rel="noopener">Order</a>
+        <a class="btn" target="_blank" rel="noopener">Order via WhatsApp</a>
       </article>
     </template>
   </main>
@@ -92,14 +155,12 @@
       return s.replace(/\s+/g,' ');
     }
     function makeKode(catKey, title){
-      // contoh: cat "Mobile Legend IDN" + "86 Diamonds" -> "mobile-legend-idn86"
       const num = (String(title).match(/\d+/) || [''])[0];
       const base = (catKey||'game').toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
       return `${base}${num?num:''}`;
     }
     const toIDR = v => new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(v);
 
-    // Elemen
     const tabsEl      = document.getElementById('tabs');
     const gridEl      = document.getElementById('grid');
     const searchEl    = document.getElementById('search');
@@ -107,31 +168,21 @@
     const cardTmpl    = document.getElementById('cardTmpl');
     const errBox      = document.getElementById('error');
 
-    // State
-    let DATA = [];  // {catKey, catLabel, title, price, kode}
-    let CATS = [];  // [{key,label}]
-    let activeCat = '';
-    let query = '';
+    let DATA = []; let CATS = []; let activeCat = ''; let query = '';
 
-    // ========= PARSER GViz STABIL =========
     function parseGVizPairs(jsonText){
-      // Ambil objek JSON di dalam setResponse(...{...}...)
       const m = jsonText.match(/\{.*\}/s);
       if(!m) throw new Error('Response GViz tidak valid (tidak ditemukan objek JSON).');
       const obj = JSON.parse(m[0]);
-
       const table = obj.table || {};
       const rows  = table.rows || [];
       const cols  = table.cols || [];
-
-      // Pasangan kolom: [A,B] [C,D] [E,F] ... = [Nama, Harga]
       const pairs = [];
       for(let i=0;i<cols.length;i+=2){
         const label = cols[i]?.label || '';
         if(!label || !cols[i+1]) continue;
         pairs.push({ iTitle:i, iPrice:i+1, label });
       }
-
       const out = [];
       for(const r of rows){
         const c = r.c || [];
@@ -141,11 +192,8 @@
           const price = priceRaw!=null && priceRaw!=='' ? Number(priceRaw) : NaN;
           if(title && !Number.isNaN(price)){
             out.push({
-              catKey: p.label,
-              catLabel: prettyLabel(p.label),
-              title,
-              price,
-              kode: makeKode(p.label, title)
+              catKey: p.label, catLabel: prettyLabel(p.label),
+              title, price, kode: makeKode(p.label, title)
             });
           }
         }
@@ -157,25 +205,19 @@
       const map = new Map();
       for(const it of DATA){ if(!map.has(it.catKey)) map.set(it.catKey, it.catLabel); }
       CATS = [...map].map(([key,label]) => ({key,label}));
-
       tabsEl.innerHTML = '';
       CATS.forEach((c, idx)=>{
         const b = document.createElement('button');
-        b.className = 'tab';
-        b.type = 'button';
-        b.setAttribute('role','tab');
+        b.className = 'tab'; b.type = 'button'; b.setAttribute('role','tab');
         b.setAttribute('aria-selected', idx===0 ? 'true' : 'false');
-        b.dataset.cat = c.key;
-        b.textContent = c.label;
+        b.dataset.cat = c.key; b.textContent = c.label;
         b.addEventListener('click', ()=>{
           [...tabsEl.children].forEach(x=>x.setAttribute('aria-selected','false'));
           b.setAttribute('aria-selected','true');
           activeCat = c.key;
           renderGrid();
         });
-        b.addEventListener('keydown', e=>{
-          if(e.key==='Enter' || e.key===' '){ e.preventDefault(); b.click(); }
-        });
+        b.addEventListener('keydown', e=>{ if(e.key==='Enter' || e.key===' ') b.click(); });
         tabsEl.appendChild(b);
       });
       activeCat = CATS[0]?.key || '';
@@ -187,61 +229,48 @@
         .filter(x => {
           if(!query) return true;
           const q = query.toLowerCase();
-          return x.title.toLowerCase().includes(q) ||
-                 x.kode.toLowerCase().includes(q) ||
-                 String(x.price).includes(q);
+          return x.title.toLowerCase().includes(q) || x.kode.toLowerCase().includes(q) || String(x.price).includes(q);
         });
 
       gridEl.innerHTML = '';
       if(items.length===0){
-        const d = document.createElement('div');
-        d.className = 'empty';
-        d.textContent = 'Tidak ada hasil. Ubah kata kunci atau pilih kategori lain.';
-        gridEl.appendChild(d);
+        gridEl.innerHTML = `<div class="empty">Tidak ada hasil ditemukan.</div>`;
         countInfoEl.textContent = '';
         return;
       }
-
       for(const it of items){
         const $ = cardTmpl.content.cloneNode(true);
         $.querySelector('.title').textContent = it.title;
         $.querySelector('.desc').textContent  = '';
         $.querySelector('.kode').textContent  = `Kode: ${it.kode}`;
         $.querySelector('.price').textContent = toIDR(it.price);
-
         const a = $.querySelector('.btn');
         const text = `${WA_GREETING}\n- Game: ${it.catLabel}\n- Item: ${it.title}\n- Kode: ${it.kode}\n- Harga: ${toIDR(it.price)}`;
         a.href = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(text)}`;
-        a.textContent = 'Order';
-
         gridEl.appendChild($);
       }
-      countInfoEl.textContent = `${items.length} item`;
+      countInfoEl.textContent = `${items.length} item ditemukan`;
     }
 
-    // Search (debounce)
     let to=null;
     searchEl.addEventListener('input', e=>{
       clearTimeout(to);
       to=setTimeout(()=>{ query = e.target.value.trim(); renderGrid(); }, 120);
     });
 
-    // ========= LOAD =========
     async function load(){
       try{
         const res = await fetch(SHEET_JSON_URL, {cache:'no-store'});
         const txt = await res.text();
         DATA = parseGVizPairs(txt);
         if(DATA.length===0) throw new Error('Data kosong atau format kolom tidak sesuai (A/B, C/D, dst).');
-
         buildTabs();
         renderGrid();
       }catch(err){
-        document.getElementById('error').style.display = 'block';
-        document.getElementById('error').textContent = `Gagal memuat data: ${err.message}`;
+        errBox.style.display = 'block';
+        errBox.textContent = `Gagal memuat data: ${err.message}`;
       }
     }
-
     load();
   </script>
 </body>
