@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Pricelist Topup</title>
-  <meta name="description" content="Pricelist interaktif terhubung Google Sheets (multi-game).">
+  <meta name="description" content="Pricelist interaktif terhubung Google Sheets (multi/single sheet).">
   <style>
     :root{
       --bg:#ffffff; --text:#0b0e12; --muted:#667085; --surface:#f7f8fa; --border:#e5e7eb;
@@ -87,19 +87,14 @@
     const WA_NUMBER = '6285877001999';
     const WA_GREETING = 'Halo, saya mau order:';
 
-    // Label yang lebih rapi untuk tab, bisa disesuaikan
-    function prettyLabel(raw){
-      const s = String(raw||'').trim();
-      if(!s) return 'Unknown';
-      // ambil kata pertama-kedua agar ringkas
-      return s.replace(/\s+/g,' ').trim();
-    }
+    // Label tab rapih
+    const prettyLabel = s => String(s||'').trim() || 'Unknown';
 
-    // Buat kode dari nama + angka (contoh "86 Diamonds" -> "ml-86")
+    // Buat kode dari kategori + angka pada judul (tanpa tanda minus)
     function makeKode(catKey, title){
       const num = (String(title).match(/\d+/) || [''])[0];
-      const base = (catKey||'game').toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
-      return `${base}${num?'-'+num:''}`;
+      const base = String(catKey||'game').toLowerCase().replace(/\s+/g,'').replace(/[^a-z0-9]/g,'');
+      return `${base}${num?num:''}`;
     }
 
     // Format IDR
@@ -119,18 +114,34 @@
     let activeCat = '';
     let query = '';
 
-    // Parse Google Visualization JSON (multi-game: pasangan kolom)
-    function parseGVizPairs(jsonText){
+    // === Parser Google Visualization JSON ===
+    function parseGViz(jsonText){
       const payload = jsonText.replace(/^[^{]+/, '').replace(/;?$/, '');
       const obj = JSON.parse(payload);
-      const table = obj.table;
+      const table = obj.table || {};
       const rows = table.rows || [];
       const cols = table.cols || [];
 
-      // Header baris 1 diambil dari kol-nya (label)
-      // Kita anggap pasangan [0,1], [2,3], [4,5], ... adalah [judul,harga]
+      // Mode 1: Single category 2 kolom (A=judul, B=harga)
+      if (cols.length === 2) {
+        const catKey = SHEET_NAME;
+        const catLabel = prettyLabel(SHEET_NAME);
+        const out = [];
+        for (const r of rows) {
+          const c = r.c || [];
+          const title = c[0]?.v!=null ? String(c[0].v).trim() : '';
+          const priceRaw = c[1]?.v;
+          const price = priceRaw!=null && priceRaw!=='' ? Number(priceRaw) : NaN;
+          if (title && !Number.isNaN(price)) {
+            out.push({ catKey, catLabel, title, price, kode: makeKode(catKey, title) });
+          }
+        }
+        return out;
+      }
+
+      // Mode 2: Multi kategori, pasangan kolom [judul,harga]
       const pairs = [];
-      for(let i=0;i<cols.length;i+=2){
+      for (let i=0;i<cols.length;i+=2){
         const label = cols[i]?.label || '';
         const priceColExists = !!cols[i+1];
         if(!label || !priceColExists) continue;
@@ -138,14 +149,14 @@
       }
 
       const out = [];
-      for(const r of rows){
+      for (const r of rows) {
         const c = r.c || [];
-        for(const p of pairs){
+        for (const p of pairs) {
           const title = c[p.iTitle]?.v!=null ? String(c[p.iTitle].v).trim() : '';
           const priceRaw = c[p.iPrice]?.v;
           const price = priceRaw!=null && priceRaw!=='' ? Number(priceRaw) : NaN;
-          if(title && !Number.isNaN(price)){
-            const catKey = p.label;  // pakai label kolom sebagai key
+          if (title && !Number.isNaN(price)) {
+            const catKey = p.label;
             out.push({
               catKey,
               catLabel: prettyLabel(p.label),
@@ -160,13 +171,11 @@
     }
 
     function buildTabs(){
-      // Urutkan kategori sesuai urutan kemunculan
       const map = new Map();
       for(const it of DATA){
         if(!map.has(it.catKey)) map.set(it.catKey, it.catLabel);
       }
       CATS = [...map].map(([key,label]) => ({key,label}));
-      // Render
       tabsEl.innerHTML = '';
       CATS.forEach((c, idx)=>{
         const b = document.createElement('button');
@@ -190,15 +199,36 @@
       activeCat = CATS[0]?.key || '';
     }
 
+    function sortItems(items){
+      // Urut angka naik jika ada angka di judul; selain itu urut alfabetis
+      const num = s => {
+        const m = String(s).match(/\d+/);
+        return m ? parseInt(m[0],10) : NaN;
+      };
+      return items.sort((a,b)=>{
+        const na = num(a.title), nb = num(b.title);
+        if(!Number.isNaN(na) && !Number.isNaN(nb)) return na - nb;
+        if(!Number.isNaN(na)) return -1;
+        if(!Number.isNaN(nb)) return 1;
+        return a.title.localeCompare(b.title, 'id');
+      });
+    }
+
     function renderGrid(){
-      const items = DATA.filter(x => x.catKey===activeCat)
-                        .filter(x => {
-                          if(!query) return true;
-                          const q = query.toLowerCase();
-                          return x.title.toLowerCase().includes(q) ||
-                                 x.kode.toLowerCase().includes(q) ||
-                                 String(x.price).includes(q);
-                        });
+      let items = DATA.filter(x => x.catKey===activeCat);
+
+      // filter pencarian
+      if (query) {
+        const q = query.toLowerCase();
+        items = items.filter(x =>
+          x.title.toLowerCase().includes(q) ||
+          x.kode.toLowerCase().includes(q) ||
+          String(x.price).includes(q)
+        );
+      }
+
+      // urutkan
+      items = sortItems(items);
 
       gridEl.innerHTML = '';
       if(items.length===0){
@@ -213,7 +243,7 @@
       for(const it of items){
         const $ = cardTmpl.content.cloneNode(true);
         $.querySelector('.title').textContent = it.title;
-        $.querySelector('.desc').textContent  = ''; // bisa isi "Instan" dsb jika butuh
+        $.querySelector('.desc').textContent  = ''; // bisa diisi info singkat jika perlu
         $.querySelector('.kode').textContent  = `Kode: ${it.kode}`;
         $.querySelector('.price').textContent = toIDR(it.price);
 
@@ -227,9 +257,9 @@
       countInfoEl.textContent = `${items.length} item`;
     }
 
-    // Search
+    // Search debounce
     let to=null;
-    searchEl.addEventListener('input', e=>{
+    document.getElementById('search').addEventListener('input', e=>{
       clearTimeout(to);
       to=setTimeout(()=>{ query = e.target.value.trim(); renderGrid(); }, 120);
     });
@@ -238,9 +268,8 @@
       try{
         const res = await fetch(SHEET_JSON_URL, {cache:'no-store'});
         const txt = await res.text();
-        DATA = parseGVizPairs(txt);
+        DATA = parseGViz(txt);
         if(DATA.length===0) throw new Error('Data kosong atau format kolom tidak sesuai.');
-
         buildTabs();
         renderGrid();
       }catch(err){
