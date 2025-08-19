@@ -76,11 +76,9 @@
   </main>
 
   <script>
-    // ========= KONFIGURASI =========
-    // 1) Publish to web di Google Sheets (File → Share → Publish to web → pilih sheet)
-    // 2) Isi SHEET_ID dan SHEET_NAME
-    const SHEET_ID   = 'PASTE_SHEET_ID';
-    const SHEET_NAME = 'Sheet3'; // ganti sesuai tab
+    // ========= KONFIG =========
+    const SHEET_ID   = '1B0XPR4uSvRzy9LfzWDjNjwAyMZVtJs6_Kk_r2fh7dTw'; // <- punyamu
+    const SHEET_NAME = 'Sheet3'; // ganti kalau tabnya bukan Sheet3
     const SHEET_JSON_URL =
       `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(SHEET_NAME)}&tqx=out:json`;
 
@@ -94,7 +92,7 @@
       return s.replace(/\s+/g,' ');
     }
     function makeKode(catKey, title){
-      // contoh: cat "Mobile Legends ID" + "86 Diamonds" --> "mobile-legends-id86"
+      // contoh: cat "Mobile Legend IDN" + "86 Diamonds" -> "mobile-legend-idn86"
       const num = (String(title).match(/\d+/) || [''])[0];
       const base = (catKey||'game').toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
       return `${base}${num?num:''}`;
@@ -102,12 +100,12 @@
     const toIDR = v => new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(v);
 
     // Elemen
-    const tabsEl     = document.getElementById('tabs');
-    const gridEl     = document.getElementById('grid');
-    const searchEl   = document.getElementById('search');
-    const countInfoEl= document.getElementById('countInfo');
-    const cardTmpl   = document.getElementById('cardTmpl');
-    const errBox     = document.getElementById('error');
+    const tabsEl      = document.getElementById('tabs');
+    const gridEl      = document.getElementById('grid');
+    const searchEl    = document.getElementById('search');
+    const countInfoEl = document.getElementById('countInfo');
+    const cardTmpl    = document.getElementById('cardTmpl');
+    const errBox      = document.getElementById('error');
 
     // State
     let DATA = [];  // {catKey, catLabel, title, price, kode}
@@ -126,7 +124,7 @@
       const rows  = table.rows || [];
       const cols  = table.cols || [];
 
-      // Asumsi pasangan kolom: [A,B] [C,D] [E,F] ... = [Nama, Harga]
+      // Pasangan kolom: [A,B] [C,D] [E,F] ... = [Nama, Harga]
       const pairs = [];
       for(let i=0;i<cols.length;i+=2){
         const label = cols[i]?.label || '';
@@ -155,7 +153,6 @@
       return out;
     }
 
-    // ========= UI =========
     function buildTabs(){
       const map = new Map();
       for(const it of DATA){ if(!map.has(it.catKey)) map.set(it.catKey, it.catLabel); }
@@ -240,8 +237,8 @@
         buildTabs();
         renderGrid();
       }catch(err){
-        errBox.style.display = 'block';
-        errBox.textContent = `Gagal memuat data: ${err.message}`;
+        document.getElementById('error').style.display = 'block';
+        document.getElementById('error').textContent = `Gagal memuat data: ${err.message}`;
       }
     }
 
