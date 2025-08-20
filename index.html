@@ -1,3 +1,5 @@
+
+
 <!doctype html>
 <html lang="id">
 <head>
@@ -149,7 +151,7 @@
     const SHEET_NAME = 'Sheet3';
     const SHEET_JSON_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(SHEET_NAME)}&tqx=out:json`;
     const WA_NUMBER   = '6285877001999';
-    const WA_GREETING = 'Halo, saya mau order:';
+    const WA_GREETING = 'Halo kak, saya ingin melakukan pemesanan:';
 
     const burger = document.getElementById('burger');
     const menu = document.getElementById('menu');
@@ -224,7 +226,7 @@
         const link = clone.querySelector('.list-item');
         link.querySelector('.title').textContent = it.title;
         link.querySelector('.price').textContent = toIDR(it.price);
-        const text = `${WA_GREETING}\n- Game: ${it.catLabel}\n- Item: ${it.title}\n- Harga: ${toIDR(it.price)}`;
+        const text = `${WA_GREETING}\n› Game: ${it.catLabel}\n› Item: ${it.title}\n› Harga: ${toIDR(it.price)}`;
         link.href = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(text)}`;
         fragment.appendChild(clone);
       }
